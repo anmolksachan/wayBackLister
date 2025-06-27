@@ -1,10 +1,22 @@
 import requests
 import re
+import time
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import argparse
 import os
 import tempfile
+import random
+
+# --- CONFIGURATION ---
+MAX_RETRIES = 3
+INITIAL_TIMEOUT = 15  # Increased initial timeout
+RETRY_DELAY = 5       # Delay between retries
+USER_AGENTS = [
+    'WaybackLister/2.0',
+    'Mozilla/5.0',
+    'CustomBot/1.0 (+https://example.com/bot )',
+]
 
 def display_banner():
     banner = r"""
@@ -22,22 +34,31 @@ def display_banner():
     """
     print(banner)
 
+
 def fetch_wayback_urls(domain):
     print(f"[+] Querying Wayback Machine for {domain}...")
-    wayback_url = f"https://web.archive.org/cdx/search/cdx?url=*.{domain}/*&output=txt&fl=original&collapse=urlkey&page=/"
-    headers = {'User-Agent': 'WaybackLister/1.1'}
+    wayback_url = f"https://web.archive.org/cdx/search/cdx?url=*.{domain}/*&output=txt&fl=original&collapse=urlkey"
     
-    try:
-        with requests.get(wayback_url, stream=True, headers=headers, timeout=10) as response:
-            response.raise_for_status()
-            with tempfile.NamedTemporaryFile(delete=False, mode="w+", encoding="utf-8") as temp_file:
-                for line in response.iter_lines(decode_unicode=True):
-                    if line.strip():
-                        temp_file.write(line.strip() + "\n")
-                return temp_file.name
-    except requests.exceptions.RequestException as e:
-        print(f"[-] Error fetching data from Wayback Machine for {domain}: {e}")
-        return None
+    headers = {'User-Agent': random.choice(USER_AGENTS)}
+    
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            print(f"[*] Attempt {attempt} to fetch data for {domain}")
+            with requests.get(wayback_url, stream=True, headers=headers, timeout=INITIAL_TIMEOUT) as response:
+                response.raise_for_status()
+                with tempfile.NamedTemporaryFile(delete=False, mode="w+", encoding="utf-8") as temp_file:
+                    for line in response.iter_lines(decode_unicode=True):
+                        if line.strip():
+                            temp_file.write(line.strip() + "\n")
+                    return temp_file.name
+        except (requests.exceptions.RequestException, OSError) as e:
+            print(f"[-] Error fetching data from Wayback Machine (Attempt {attempt}): {e}")
+            if attempt < MAX_RETRIES:
+                wait_time = RETRY_DELAY * attempt
+                print(f"[*] Retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+    return None
+
 
 def extract_paths_for_domain(temp_file_path, target_domain):
     unique_paths = set()
@@ -46,10 +67,11 @@ def extract_paths_for_domain(temp_file_path, target_domain):
             url = line.strip()
             parsed_url = urlparse(url)
             if parsed_url.hostname == target_domain:
-                path = parsed_url.path
+                path = parsed_url.path.rstrip('/')
                 if path and path != "/":
                     unique_paths.add(path)
     return sorted(unique_paths)
+
 
 def extract_subdomains(temp_file_path, domain):
     subdomains = set()
@@ -67,6 +89,7 @@ def extract_subdomains(temp_file_path, domain):
     
     return sorted(subdomains)
 
+
 def check_directory_listing(domain, path):
     protocols = ["http", "https"]
     patterns = [
@@ -79,12 +102,12 @@ def check_directory_listing(domain, path):
         "Size</a>",
         "Description</a>"
     ]
-    headers = {'User-Agent': 'WaybackLister/2.0'}
+    headers = {'User-Agent': random.choice(USER_AGENTS)}
     
     for protocol in protocols:
         url = f"{protocol}://{domain}{path}"
         try:
-            response = requests.get(url, timeout=5, headers=headers, allow_redirects=True)
+            response = requests.get(url, timeout=10, headers=headers, allow_redirects=True)
             if response.status_code == 200:
                 for pattern in patterns:
                     if pattern in response.text:
@@ -92,6 +115,7 @@ def check_directory_listing(domain, path):
         except requests.exceptions.RequestException:
             continue
     return None
+
 
 def process_domain(domain, paths, threads):
     print(f"[+] Processing domain: {domain}")
@@ -118,6 +142,7 @@ def process_domain(domain, paths, threads):
     else:
         print(f"[-] No directory listings found for {domain}.")
 
+
 def auto_discover_and_process(domain, threads):
     print(f"[+] Auto-discovering subdomains for {domain}...")
     temp_file_path = fetch_wayback_urls(domain)
@@ -142,6 +167,7 @@ def auto_discover_and_process(domain, threads):
         if os.path.exists(temp_file_path):
             os.unlink(temp_file_path)
 
+
 def process_domains_from_file(file_path, threads):
     try:
         with open(file_path, "r") as file:
@@ -164,6 +190,7 @@ def process_domains_from_file(file_path, threads):
     
     except FileNotFoundError:
         print(f"[-] File not found: {file_path}")
+
 
 def main():
     display_banner()
@@ -195,6 +222,7 @@ def main():
             print("[-] Invalid domain format. Please enter a valid domain.")
             return
         auto_discover_and_process(args.auto, args.threads)
+
 
 if __name__ == "__main__":
     main()
