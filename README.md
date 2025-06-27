@@ -1,20 +1,11 @@
 
 ---
 
-# WaybackLister v1.0
+<!--# WaybackLister-->
 
-```
- __          __         _                _    _      _     _            
- \ \        / /        | |              | |  | |    (_)   | |           
-  \ \  /\  / /_ _ _   _| |__   __ _  ___| | _| |     _ ___| |_ ___ _ __ 
-   \ \/  \/ / _` | | | | '_ \ / _` |/ __| |/ / |    | / __| __/ _ \ '__|
-    \  /\  / (_| | |_| | |_) | (_| | (__|   <| |____| \__ \ ||  __/ |   
-     \/  \/ \__,_|\__, |_.__/ \__,_|\___|_|\_\______|_|___/\__\___|_|   
-                   __/ |                                                
-                  |___/                                                
-```
+<img width="550" alt="Screenshot 2025-06-27 at 8 04 32 AM" src="https://github.com/user-attachments/assets/10b6c7da-546a-444b-b27a-824299bdab72" />
 
-> **WaybackLister v1.0** — by [FR13ND0x7F]  
+> **WaybackLister v1.1** — by [FR13ND0x7F]  
 > Discover potential directory listings through archived URLs from the Wayback Machine.
 
 ---
@@ -33,6 +24,7 @@ WaybackLister is a reconnaissance tool that taps into the Wayback Machine to fet
 - Supports multithreaded scanning
 - Can auto-discover subdomains based on Wayback data
 - Works with single domain or list of domains
+- Retry logic for timeouts [v1.1] 
 
 ---
 
@@ -80,6 +72,8 @@ python waybacklister.py -d example.com -t 20
 
 ```
 [+] Querying Wayback Machine for example.com...
+[*] Attempt 1 to fetch data for example.com
+[+] Processing domain: example.com
 [+] Found 154 unique paths for example.com. Checking for directory listings...
 [+] Directory Listing Found: http://example.com/files/
 [+] Directory Listing Found: http://example.com/uploads/
@@ -93,7 +87,8 @@ http://example.com/uploads/
 
 ## 📄 Example
 
-![image](https://github.com/user-attachments/assets/62bb5035-94fc-432d-ae14-daa823b2aebe)
+<img width="718" alt="Screenshot 2025-06-27 at 8 11 27 AM" src="https://github.com/user-attachments/assets/55e16e8f-3c89-408b-b501-bd2405ee7739" />
+<!--v1.0 ![image](https://github.com/user-attachments/assets/62bb5035-94fc-432d-ae14-daa823b2aebe)-->
 
 ---
 
@@ -132,6 +127,6 @@ This tool is meant for educational and authorized security testing only. Don't u
 
 ## 🙌 Acknowledgements
 
-Crafted by FR13ND0x7F @anmolksachan — for the community, by the community.
+Crafted by ([FR13ND0x7F @anmolksachan](https://x.com/fr13nd0x7f)) — for the community, by the community.
 
 ---
